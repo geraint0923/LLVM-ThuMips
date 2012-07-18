@@ -73,6 +73,45 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
               I->getOperand(0).getReg())
         .addReg(Mips::V0).addReg(I->getOperand(1).getReg());
       break;
+
+	case Mips::SYNC:
+	  I->dump();
+	  BuildMI(MBB, I, I->getDebugLoc(), TII->get(Mips::NOP));
+	  break;
+
+
+	case Mips::LWL:
+	case Mips::LWR:
+	case Mips::SWL:
+	case Mips::SWR:
+	case Mips::LL:
+	case Mips::LL_P8:
+	case Mips::SC:
+	case Mips::SC_P8:
+
+	case Mips::MOVZ_I_I:
+
+	case Mips::ROTR:
+	case Mips::ROTRV:
+	case Mips::EXT:
+	case Mips::INS:
+	case Mips::RDHWR:
+	case Mips::MUL:
+	//case Mips::MULTu:
+	case Mips::SDIV:
+	case Mips::UDIV:
+
+	/*
+	case Mips::MTHI:
+	case Mips::MTLO:
+	case Mips::MFHI:
+	case Mips::MFLO:
+	*/
+	  I->dump();
+	  ++I;
+	  continue;
+	
+	
     case Mips::BuildPairF64:
       ExpandBuildPairF64(MBB, I);
       break;

@@ -835,6 +835,11 @@ let usesCustomInserter = 1 in {
   defm ATOMIC_CMP_SWAP_I8   : AtomicCmpSwap32<atomic_cmp_swap_8, "8">;
   defm ATOMIC_CMP_SWAP_I16  : AtomicCmpSwap32<atomic_cmp_swap_16, "16">;
   defm ATOMIC_CMP_SWAP_I32  : AtomicCmpSwap32<atomic_cmp_swap_32, "32">;
+
+  defm LH      : LoadM32<0x21, "lh",  sextloadi16_a>;
+  defm LHu     : LoadM32<0x25, "lhu", zextloadi16_a>;
+  defm SH      : StoreM32<0x29, "sh", truncstorei16_a>;
+
 }
 
 //===----------------------------------------------------------------------===//
@@ -885,11 +890,8 @@ let Predicates = [HasMips32r2] in {
 ///  aligned
 defm LB      : LoadM32<0x20, "lb",  sextloadi8>;
 defm LBu     : LoadM32<0x24, "lbu", zextloadi8>;
-defm LH      : LoadM32<0x21, "lh",  sextloadi16_a>;
-defm LHu     : LoadM32<0x25, "lhu", zextloadi16_a>;
 defm LW      : LoadM32<0x23, "lw",  load_a>;
 defm SB      : StoreM32<0x28, "sb", truncstorei8>;
-defm SH      : StoreM32<0x29, "sh", truncstorei16_a>;
 defm SW      : StoreM32<0x2b, "sw", store_a>;
 
 ///  unaligned

@@ -781,6 +781,14 @@ static Mips::FPBranchCode GetFPBranchCodeFromCond(Mips::CondCode CC) {
   return Mips::BRANCH_F;
 }
 
+static MachineBasicBlock* ExpandHalfwordOperation(MachineInstr *MI,
+												  MachineBasicBlock *BB,
+												  DebugLoc dl,
+												  const MipsSubtarget *Subtarget,
+												  const TargetInstrInfo *TII) {
+	return BB;
+}
+
 /*
 static MachineBasicBlock* ExpandCondMov(MachineInstr *MI, MachineBasicBlock *BB,
                                         DebugLoc dl,
@@ -861,8 +869,20 @@ static MachineBasicBlock* ExpandCondMov(MachineInstr *MI, MachineBasicBlock *BB,
 MachineBasicBlock *
 MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr *MI,
                                                 MachineBasicBlock *BB) const {
+
+  const TargetInstrInfo *TII = getTargetMachine().getInstrInfo();
+  DebugLoc dl = MI->getDebugLoc();
+
+
   switch (MI->getOpcode()) {
   default: llvm_unreachable("Unexpected instr type to insert");
+
+  case Mips::LHu:
+  case Mips::LH:
+  case Mips::SH:
+	MI->dump();
+	return ExpandHalfwordOperation(MI, BB, dl, Subtarget, TII);
+
   case Mips::ATOMIC_LOAD_ADD_I8:
   case Mips::ATOMIC_LOAD_ADD_I8_P8:
     return EmitAtomicBinaryPartword(MI, BB, 1, Mips::ADDu);
