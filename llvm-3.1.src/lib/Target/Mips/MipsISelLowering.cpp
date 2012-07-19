@@ -36,6 +36,10 @@
 #include "llvm/Support/ErrorHandling.h"
 #include "llvm/Support/raw_ostream.h"
 
+#include <iostream>
+
+using namespace std;
+
 using namespace llvm;
 
 // If I is a shifted mask, set the size (Size) and the first bit of the
@@ -781,11 +785,135 @@ static Mips::FPBranchCode GetFPBranchCodeFromCond(Mips::CondCode CC) {
   return Mips::BRANCH_F;
 }
 
-static MachineBasicBlock* ExpandHalfwordOperation(MachineInstr *MI,
-												  MachineBasicBlock *BB,
-												  DebugLoc dl,
-												  const MipsSubtarget *Subtarget,
-												  const TargetInstrInfo *TII) {
+void PrintOperand(MachineInstr *MI) {
+	for(uint32_t i = 0; i < MI->getNumExplicitOperands(); ++i)
+	{
+		if(MI->getOperand(i).isReg())
+			cout<<i<<" : Reg"<<endl;
+		else if(MI->getOperand(i).isImm())
+			cout<<i<<" : Imm"<<endl;
+		else if(MI->getOperand(i).isCImm())
+			cout<<i<<" : CImm"<<endl;
+		else if(MI->getOperand(i).isFPImm())
+			cout<<i<<" : FPImm"<<endl;
+		else if(MI->getOperand(i).isMBB())
+			cout<<i<<" : MBB"<<endl;
+		else if(MI->getOperand(i).isFI())
+			cout<<i<<" : FI"<<endl;
+		else if(MI->getOperand(i).isCPI())
+			cout<<i<<" : CPI"<<endl;
+		else if(MI->getOperand(i).isJTI())
+			cout<<i<<" : JTI"<<endl;
+		else if(MI->getOperand(i).isGlobal())
+			cout<<i<<" : Global"<<endl;
+		else if(MI->getOperand(i).isSymbol())
+			cout<<i<<" : Symbol"<<endl;
+		else if(MI->getOperand(i).isBlockAddress())
+			cout<<i<<" : BlockAddress"<<endl;
+		else if(MI->getOperand(i).isRegMask())
+			cout<<i<<" : RegMask"<<endl;
+		else if(MI->getOperand(i).isMetadata())
+			cout<<i<<" : Metadata"<<endl;
+		else if(MI->getOperand(i).isMCSymbol())
+			cout<<i<<" : MCSymbol"<<endl;
+		else
+			cout<<i<<" : Unknown"<<endl;
+	}
+
+}
+
+MachineBasicBlock* 
+MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
+											MachineBasicBlock *BB,
+											DebugLoc dl,
+											const MipsSubtarget *Subtarget,
+											const TargetInstrInfo *TII) const {
+	
+	MachineFunction *MF = BB->getParent();
+	MachineRegisterInfo &RegInfo = MF->getRegInfo();
+	cout<<"before"<<endl;
+	const TargetRegisterClass *RC = getRegClassFor(MVT::i32);
+	cout<<"after"<<endl;
+
+	unsigned LB = Mips::LB, LBu = Mips::LBu, SB = Mips::SB;
+	
+	const BasicBlock *LLVM_BB = BB->getBasicBlock();
+	MachineBasicBlock *expandMBB = MF->CreateMachineBasicBlock(LLVM_BB);
+	MachineFunction::iterator It = BB;
+
+	cout<<"Operand Number:"<<MI->getNumExplicitOperands()<<endl;
+	PrintOperand(MI);
+
+	unsigned tmpReg0 = RegInfo.createVirtualRegister(RC);
+	unsigned tmpReg1 = RegInfo.createVirtualRegister(RC);
+	unsigned tmpReg2 = RegInfo.createVirtualRegister(RC);
+	unsigned tmpReg3 = RegInfo.createVirtualRegister(RC);
+
+	++It;
+
+	MF->insert(It, expandMBB);
+
+	// transfer the remainder of BB and its successor edges to expandMBB
+	expandMBB->splice(expandMBB->begin(), BB,
+					llvm::next(MachineBasicBlock::iterator(MI)),
+					BB->end());
+	expandMBB->transferSuccessorsAndUpdatePHIs(BB);
+
+
+	BB->addSuccessor(expandMBB);
+
+	BB = expandMBB;
+
+	// expand the instruction as below
+	switch(MI->getOpcode()) {
+		default:
+			MI->dump();
+			cout<<"Unknown Instruction"<<endl;
+			break;
+
+		case Mips::LHu:
+		case Mips::LH:
+			// expand LH and LHu dst,imm(src)
+			/*
+			   lb tmpReg0,imm(src)
+			   lb(u) tmpReg1,(imm+1)(src)
+			   sll tmpReg2,tmpReg1,8
+			   or tmpReg3, tmpReg0, tmpReg2
+			   addiu dst, tmpReg3, 0
+			*/
+			BuildMI(BB, dl, TII->get(Mips::LB), tmpReg0).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm());
+			if(MI->getOpcode() == Mips::LHu)
+				BuildMI(BB, dl, TII->get(Mips::LBu), tmpReg1).addOperand(MI->getOperand(1)).addImm(1 + MI->getOperand(2).getImm());
+			else
+				BuildMI(BB, dl, TII->get(Mips::LB), tmpReg1).addOperand(MI->getOperand(1)).addImm(1 + MI->getOperand(2).getImm());
+			BuildMI(BB, dl, TII->get(Mips::SLL), tmpReg2).addReg(tmpReg1).addImm(8);
+			BuildMI(BB, dl, TII->get(Mips::OR), tmpReg3).addReg(tmpReg0).addReg(tmpReg2);
+			BuildMI(BB, dl, TII->get(Mips::ADDiu), MI->getOperand(0).getReg()).addReg(tmpReg3).addImm(0);
+
+			break;
+
+		case Mips::SH:
+			// expand SH src,imm(dst)
+			/*
+			   addiu tmpReg0, src, 0
+			   sb tmpReg0, imm(dst)
+			   srl tmpReg1, tmpReg0, 8
+			   sb tmpReg1, (imm+1)(dst)
+			*/
+			//BuildMI(BB, dl, TII->get(Mips::SB), tmpReg0).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm());
+			BuildMI(BB, dl, TII->get(Mips::ADDiu), tmpReg0).addReg(MI->getOperand(0).getReg()).addImm(0);
+			BuildMI(BB, dl, TII->get(Mips::SB), tmpReg0).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm());
+			BuildMI(BB, dl, TII->get(Mips::SRL), tmpReg1).addReg(tmpReg0).addImm(8);
+			BuildMI(BB, dl, TII->get(Mips::SB), tmpReg1).addOperand(MI->getOperand(1)).addImm(1 + MI->getOperand(2).getImm());
+			
+			break;
+	}
+
+
+	MI->eraseFromParent();
+
+
+
 	return BB;
 }
 
@@ -881,7 +1009,8 @@ MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr *MI,
   case Mips::LH:
   case Mips::SH:
 	MI->dump();
-	return ExpandHalfwordOperation(MI, BB, dl, Subtarget, TII);
+	return ExpandUnsupportedOperation(MI, BB, dl, Subtarget, TII);
+	//return BB;
 
   case Mips::ATOMIC_LOAD_ADD_I8:
   case Mips::ATOMIC_LOAD_ADD_I8_P8:

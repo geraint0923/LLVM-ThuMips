@@ -194,6 +194,13 @@ namespace llvm {
                                   MachineBasicBlock *BB, unsigned Size) const;
     MachineBasicBlock *EmitAtomicCmpSwapPartword(MachineInstr *MI,
                                   MachineBasicBlock *BB, unsigned Size) const;
+
+	MachineBasicBlock *ExpandUnsupportedOperation(MachineInstr *MI,
+								  MachineBasicBlock *BB,
+								  DebugLoc dl,
+								  const MipsSubtarget *Subtarget,
+								  const TargetInstrInfo *TII) const;
+
   };
 }
 
