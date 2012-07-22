@@ -60,6 +60,7 @@ bool MipsExpandPseudo::runOnMachineFunction(MachineFunction& F) {
 bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
 
   bool Changed = false;
+  MachineBasicBlock::iterator I0, I1;
   for (MachineBasicBlock::iterator I = MBB.begin(); I != MBB.end();) {
     const MCInstrDesc& MCid = I->getDesc();
 
@@ -73,6 +74,37 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
               I->getOperand(0).getReg())
         .addReg(Mips::V0).addReg(I->getOperand(1).getReg());
       break;
+
+	// trick for SH
+	case Mips::ULW:
+	  I0 = I++;
+	  I1 = I++;
+	  BuildMI(MBB, I0, I0->getDebugLoc(), TII->get(Mips::SB)).addOperand(I1->getOperand(1))
+			  .addOperand(I0->getOperand(1)).addOperand(I0->getOperand(2));
+	  BuildMI(MBB, I0, I0->getDebugLoc(), TII->get(Mips::SRL)).addOperand(I0->getOperand(0))
+			  .addOperand(I1->getOperand(1)).addImm(8);
+	  BuildMI(MBB, I0, I0->getDebugLoc(), TII->get(Mips::SB)).addOperand(I1->getOperand(1))
+			  .addOperand(I0->getOperand(1)).addImm(I0->getOperand(2).getImm() + 1);
+
+	  MBB.erase(I0);
+	  MBB.erase(I1);
+	  MBB.erase(I++);
+	  
+	  continue;
+
+	// trick for LH
+	case Mips::ULH:
+	  I->dump();
+	  BuildMI(MBB, I, I->getDebugLoc(), TII->get(Mips::LB)).addOperand(I->getOperand(0)).
+			  addOperand(I->getOperand(1)).addImm(I->getOperand(2).getImm()+1);
+	  break;
+
+	// trick for LHu
+	case Mips::ULHu:
+	  I->dump();
+	  BuildMI(MBB, I, I->getDebugLoc(), TII->get(Mips::LBu)).addOperand(I->getOperand(0)).
+			  addOperand(I->getOperand(1)).addImm(I->getOperand(2).getImm()+1);
+	  break;
 
 	case Mips::SYNC:
 	  I->dump();
@@ -102,6 +134,7 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
 	case Mips::LWR:
 	case Mips::SWL:
 	case Mips::SWR:
+
 	case Mips::LL:
 	case Mips::LL_P8:
 	case Mips::SC:
@@ -111,9 +144,11 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
 
 	case Mips::ROTR:
 	case Mips::ROTRV:
+
 	case Mips::EXT:
 	case Mips::INS:
 	case Mips::RDHWR:
+
 	case Mips::MUL:
 	//case Mips::MULTu:
 	case Mips::SDIV:

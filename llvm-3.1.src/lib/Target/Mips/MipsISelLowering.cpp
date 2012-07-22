@@ -825,96 +825,78 @@ void PrintOperand(MachineInstr *MI) {
 MachineBasicBlock* 
 MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 											MachineBasicBlock *BB,
-											DebugLoc dl,
+											DebugLoc tdl,
 											const MipsSubtarget *Subtarget,
-											const TargetInstrInfo *TII) const {
+											const TargetInstrInfo *tTII) const {
+
+		return BB;
+		cout<<"start"<<endl;
 	
+		
 	MachineFunction *MF = BB->getParent();
 	MachineRegisterInfo &RegInfo = MF->getRegInfo();
-	cout<<"before"<<endl;
 	const TargetRegisterClass *RC = getRegClassFor(MVT::i32);
-	cout<<"after"<<endl;
-
-	unsigned LB = Mips::LB, LBu = Mips::LBu, SB = Mips::SB;
-	
-	const BasicBlock *LLVM_BB = BB->getBasicBlock();
-	MachineBasicBlock *expandMBB = MF->CreateMachineBasicBlock(LLVM_BB);
-	MachineFunction::iterator It = BB;
-
-	cout<<"Operand Number:"<<MI->getNumExplicitOperands()<<endl;
-	PrintOperand(MI);
+	const TargetInstrInfo *TII = getTargetMachine().getInstrInfo();
+	DebugLoc dl = MI->getDebugLoc();
 
 	unsigned tmpReg0 = RegInfo.createVirtualRegister(RC);
 	unsigned tmpReg1 = RegInfo.createVirtualRegister(RC);
 	unsigned tmpReg2 = RegInfo.createVirtualRegister(RC);
-	unsigned tmpReg3 = RegInfo.createVirtualRegister(RC);
+
+	
+	const BasicBlock *LLVM_BB = BB->getBasicBlock();
+	//MachineBasicBlock *expandMBB = MF->CreateMachineBasicBlock(LLVM_BB);
+	MachineBasicBlock *exitMBB = MF->CreateMachineBasicBlock(LLVM_BB);
+	MachineFunction::iterator It = BB;
 
 	++It;
 
-	MF->insert(It, expandMBB);
+	//MF->insert(It, expandMBB);
+	MF->insert(It, exitMBB);
 
-	// transfer the remainder of BB and its successor edges to expandMBB
-	expandMBB->splice(expandMBB->begin(), BB,
-					llvm::next(MachineBasicBlock::iterator(MI)),
-					BB->end());
-	expandMBB->transferSuccessorsAndUpdatePHIs(BB);
+	exitMBB->splice(exitMBB->begin(), BB,
+					llvm::next(MachineBasicBlock::iterator(MI)), BB->end());
+	exitMBB->transferSuccessorsAndUpdatePHIs(BB);
 
+	BB->addSuccessor(exitMBB);
+	//expandMBB->addSuccessor(exitMBB);
 
-	BB->addSuccessor(expandMBB);
+	cout<<"begin"<<endl;
+	//MI->dump();
 
-	BB = expandMBB;
-
-	// expand the instruction as below
 	switch(MI->getOpcode()) {
 		default:
-			MI->dump();
-			cout<<"Unknown Instruction"<<endl;
-			break;
+			cout<<"error!"<<endl;
+			exit(-1);
 
-		case Mips::LHu:
+			/*
 		case Mips::LH:
-			// expand LH and LHu dst,imm(src)
-			/*
-			   lb tmpReg0,imm(src)
-			   lb(u) tmpReg1,(imm+1)(src)
-			   sll tmpReg2,tmpReg1,8
-			   or tmpReg3, tmpReg0, tmpReg2
-			   addiu dst, tmpReg3, 0
-			*/
+		case Mips::LHu:
 			BuildMI(BB, dl, TII->get(Mips::LB), tmpReg0).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm());
-			if(MI->getOpcode() == Mips::LHu)
-				BuildMI(BB, dl, TII->get(Mips::LBu), tmpReg1).addOperand(MI->getOperand(1)).addImm(1 + MI->getOperand(2).getImm());
+			if(MI->getOpcode() == Mips::LH)
+				BuildMI(BB, dl, TII->get(Mips::LB), tmpReg1).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm()+1);
 			else
-				BuildMI(BB, dl, TII->get(Mips::LB), tmpReg1).addOperand(MI->getOperand(1)).addImm(1 + MI->getOperand(2).getImm());
+				BuildMI(BB, dl, TII->get(Mips::LBu), tmpReg1).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm()+1);
 			BuildMI(BB, dl, TII->get(Mips::SLL), tmpReg2).addReg(tmpReg1).addImm(8);
-			BuildMI(BB, dl, TII->get(Mips::OR), tmpReg3).addReg(tmpReg0).addReg(tmpReg2);
-			BuildMI(BB, dl, TII->get(Mips::ADDiu), MI->getOperand(0).getReg()).addReg(tmpReg3).addImm(0);
-
+			BuildMI(BB, dl, TII->get(Mips::ADDu), MI->getOperand(0).getReg()).addReg(tmpReg0).addReg(tmpReg2);
 			break;
-
-		case Mips::SH:
-			// expand SH src,imm(dst)
-			/*
-			   addiu tmpReg0, src, 0
-			   sb tmpReg0, imm(dst)
-			   srl tmpReg1, tmpReg0, 8
-			   sb tmpReg1, (imm+1)(dst)
 			*/
-			//BuildMI(BB, dl, TII->get(Mips::SB), tmpReg0).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm());
-			BuildMI(BB, dl, TII->get(Mips::ADDiu), tmpReg0).addReg(MI->getOperand(0).getReg()).addImm(0);
-			BuildMI(BB, dl, TII->get(Mips::SB), tmpReg0).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm());
-			BuildMI(BB, dl, TII->get(Mips::SRL), tmpReg1).addReg(tmpReg0).addImm(8);
-			BuildMI(BB, dl, TII->get(Mips::SB), tmpReg1).addOperand(MI->getOperand(1)).addImm(1 + MI->getOperand(2).getImm());
-			
+			/*
+		case Mips::SH:
+			BuildMI(BB, dl, TII->get(Mips::SB), MI->getOperand(0).getReg()).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm());
+			BuildMI(BB, dl, TII->get(Mips::SRL), tmpReg0).addReg(MI->getOperand(0).getReg()).addImm(8);
+			BuildMI(BB, dl, TII->get(Mips::SB), tmpReg0).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm()+1);
 			break;
+			*/
 	}
 
 
 	MI->eraseFromParent();
 
+	cout<<"end"<<endl;
 
-
-	return BB;
+	return exitMBB;
+	
 }
 
 /*
@@ -1004,14 +986,15 @@ MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr *MI,
 
   switch (MI->getOpcode()) {
   default: llvm_unreachable("Unexpected instr type to insert");
-
+/*
   case Mips::LHu:
-  case Mips::LH:
+  //case Mips::LH:
   case Mips::SH:
 	MI->dump();
 	return ExpandUnsupportedOperation(MI, BB, dl, Subtarget, TII);
 	//return BB;
-
+*/
+		   
   case Mips::ATOMIC_LOAD_ADD_I8:
   case Mips::ATOMIC_LOAD_ADD_I8_P8:
     return EmitAtomicBinaryPartword(MI, BB, 1, Mips::ADDu);

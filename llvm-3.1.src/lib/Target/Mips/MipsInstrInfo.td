@@ -303,6 +303,7 @@ def truncstorei16_u : UnalignedStore<truncstorei16>;
 def store_u         : UnalignedStore<store>;
 def truncstorei32_u : UnalignedStore<truncstorei32>;
 
+
 //===----------------------------------------------------------------------===//
 // Instructions specific format
 //===----------------------------------------------------------------------===//
@@ -836,11 +837,16 @@ let usesCustomInserter = 1 in {
   defm ATOMIC_CMP_SWAP_I16  : AtomicCmpSwap32<atomic_cmp_swap_16, "16">;
   defm ATOMIC_CMP_SWAP_I32  : AtomicCmpSwap32<atomic_cmp_swap_32, "32">;
 
-  defm LH      : LoadM32<0x21, "lh",  sextloadi16_a>;
-  defm LHu     : LoadM32<0x25, "lhu", zextloadi16_a>;
-  defm SH      : StoreM32<0x29, "sh", truncstorei16_a>;
 
 }
+
+/*
+defm LH      : LoadM32<0x21, "lh",  sextloadi16_a>;
+defm LHu     : LoadM32<0x25, "lhu", zextloadi16_a>;
+defm SH      : StoreM32<0x29, "sh", truncstorei16_a>;
+*/
+
+
 
 //===----------------------------------------------------------------------===//
 // Instruction definition
@@ -1008,6 +1014,7 @@ def RDHWR : ReadHardware<CPURegs, HWRegs>;
 def EXT : ExtBase<0, "ext", CPURegs>;
 def INS : InsBase<4, "ins", CPURegs>;
 
+
 //===----------------------------------------------------------------------===//
 //  Arbitrary patterns that map to one or more instructions
 //===----------------------------------------------------------------------===//
@@ -1086,19 +1093,44 @@ def : WrapperPat<tglobaltlsaddr, ADDiu, CPURegs>;
 def : Pat<(not CPURegs:$in),
           (NOR CPURegs:$in, ZERO)>;
 
+/* my code here */
+
+def : Pat<(i32 (sextloadi16_a addr:$src)),
+			(OR (LB addr:$src), (SLL (ULH addr:$src), 8))>;
+
+def : Pat<(i32 (zextloadi16_a addr:$src)),
+			(OR (LB addr:$src), (SLL (ULHu addr:$src), 8))>;
+
+def : Pat<(truncstorei16_a (i32 CPURegs:$src), addr:$dst),
+			(USW (SRLV CPURegs:$src, (ULW addr:$dst)), addr:$dst)>;
+
+//def : Pat<(truncstorei16_a (i32 CPURegs:$src), addr:$dst),
+//			(SB (), addr:$dst)>;
+
+//(SB CPURegs:$src, addr:$dst) >;
+//			 (SB (SRL CPURegs:$src, 8), addr:$dst))>;
+
 // extended loads
 let Predicates = [NotN64] in {
   def : Pat<(i32 (extloadi1  addr:$src)), (LBu addr:$src)>;
   def : Pat<(i32 (extloadi8  addr:$src)), (LBu addr:$src)>;
-  def : Pat<(i32 (extloadi16_a addr:$src)), (LHu addr:$src)>;
+//  def : Pat<(i32 (extloadi16_a addr:$src)), (LHu addr:$src)>;
+  def : Pat<(i32 (extloadi16_a addr:$src)), 
+			(OR (LB addr:$src), (SLL (ULHu addr:$src), 8))>;
+
   def : Pat<(i32 (extloadi16_u addr:$src)), (ULHu addr:$src)>;
 }
+
+
+/*
 let Predicates = [IsN64] in {
   def : Pat<(i32 (extloadi1  addr:$src)), (LBu_P8 addr:$src)>;
   def : Pat<(i32 (extloadi8  addr:$src)), (LBu_P8 addr:$src)>;
   def : Pat<(i32 (extloadi16_a addr:$src)), (LHu_P8 addr:$src)>;
   def : Pat<(i32 (extloadi16_u addr:$src)), (ULHu_P8 addr:$src)>;
 }
+
+*/
 
 // peepholes
 let Predicates = [NotN64] in {
