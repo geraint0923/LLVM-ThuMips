@@ -129,6 +129,12 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
 			  addOperand(I->getOperand(1)).addOperand(I->getOperand(2));
 	  break;
 
+	case Mips::B:
+	  I->dump();
+	  BuildMI(MBB, I, I->getDebugLoc(), TII->get(Mips::BGEZ)).addReg(Mips::ZERO).
+			  addOperand(I->getOperand(0));
+	  break;
+
 
 	case Mips::LWL:
 	case Mips::LWR:
@@ -150,7 +156,7 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
 	case Mips::RDHWR:
 
 	case Mips::MUL:
-	//case Mips::MULTu:
+	case Mips::MULTu:
 	case Mips::SDIV:
 	case Mips::UDIV:
 
@@ -160,6 +166,14 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
 	case Mips::MFHI:
 	case Mips::MFLO:
 	*/
+
+	
+	/*
+	case Mips::BGEZAL:
+	case Mips::BLTZAL:
+	*/
+
+
 	  I->dump();
 	  ++I;
 	  continue;

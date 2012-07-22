@@ -938,6 +938,7 @@ def SC_P8 : SCBase<0x38, "sc", CPURegs, mem64>, Requires<[IsN64]> {
 /// Jump and Branch Instructions
 def J       : JumpFJ<0x02, "j">;
 def JR      : JumpFR<0x00, 0x08, "jr", CPURegs>;
+// lack of B
 def B       : UncondBranch<0x04, "b">;
 def BEQ     : CBranch<0x04, "beq", seteq, CPURegs>;
 def BNE     : CBranch<0x05, "bne", setne, CPURegs>;
@@ -948,8 +949,10 @@ def BLTZ    : CBranchZero<0x01, 0, "bltz", setlt, CPURegs>;
 
 def JAL  : JumpLink<0x03, "jal">;
 def JALR : JumpLinkReg<0x00, 0x09, "jalr", CPURegs>;
-def BGEZAL  : BranchLink<"bgezal", 0x11, CPURegs>;
-def BLTZAL  : BranchLink<"bltzal", 0x10, CPURegs>;
+// lack of BGEZAL
+//def BGEZAL  : BranchLink<"bgezal", 0x11, CPURegs>;
+// lack of BLTZAL
+//def BLTZAL  : BranchLink<"bltzal", 0x10, CPURegs>;
 
 let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
     isBarrier=1, hasCtrlDep=1, rd=0, rt=0, shamt=0 in

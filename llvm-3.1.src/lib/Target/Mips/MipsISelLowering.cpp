@@ -822,6 +822,8 @@ void PrintOperand(MachineInstr *MI) {
 
 }
 
+
+/*
 MachineBasicBlock* 
 MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 											MachineBasicBlock *BB,
@@ -869,7 +871,6 @@ MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 			cout<<"error!"<<endl;
 			exit(-1);
 
-			/*
 		case Mips::LH:
 		case Mips::LHu:
 			BuildMI(BB, dl, TII->get(Mips::LB), tmpReg0).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm());
@@ -880,14 +881,11 @@ MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 			BuildMI(BB, dl, TII->get(Mips::SLL), tmpReg2).addReg(tmpReg1).addImm(8);
 			BuildMI(BB, dl, TII->get(Mips::ADDu), MI->getOperand(0).getReg()).addReg(tmpReg0).addReg(tmpReg2);
 			break;
-			*/
-			/*
 		case Mips::SH:
 			BuildMI(BB, dl, TII->get(Mips::SB), MI->getOperand(0).getReg()).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm());
 			BuildMI(BB, dl, TII->get(Mips::SRL), tmpReg0).addReg(MI->getOperand(0).getReg()).addImm(8);
 			BuildMI(BB, dl, TII->get(Mips::SB), tmpReg0).addOperand(MI->getOperand(1)).addImm(MI->getOperand(2).getImm()+1);
 			break;
-			*/
 	}
 
 
@@ -898,6 +896,7 @@ MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 	return exitMBB;
 	
 }
+*/
 
 /*
 static MachineBasicBlock* ExpandCondMov(MachineInstr *MI, MachineBasicBlock *BB,
@@ -980,9 +979,10 @@ MachineBasicBlock *
 MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr *MI,
                                                 MachineBasicBlock *BB) const {
 
+  /*
   const TargetInstrInfo *TII = getTargetMachine().getInstrInfo();
   DebugLoc dl = MI->getDebugLoc();
-
+  */
 
   switch (MI->getOpcode()) {
   default: llvm_unreachable("Unexpected instr type to insert");
