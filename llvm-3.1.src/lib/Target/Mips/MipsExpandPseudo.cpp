@@ -157,6 +157,7 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
 
 	case Mips::MUL:
 	case Mips::MULTu:
+	case Mips::MULT:
 	case Mips::SDIV:
 	case Mips::UDIV:
 

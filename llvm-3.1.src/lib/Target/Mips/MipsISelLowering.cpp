@@ -898,7 +898,6 @@ MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 }
 */
 
-/*
 static MachineBasicBlock* ExpandCondMov(MachineInstr *MI, MachineBasicBlock *BB,
                                         DebugLoc dl,
                                         const MipsSubtarget* Subtarget,
@@ -974,15 +973,13 @@ static MachineBasicBlock* ExpandCondMov(MachineInstr *MI, MachineBasicBlock *BB,
   MI->eraseFromParent();   // The pseudo instruction is gone now.
   return BB;
 }
-*/
+
 MachineBasicBlock *
 MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr *MI,
                                                 MachineBasicBlock *BB) const {
 
-  /*
   const TargetInstrInfo *TII = getTargetMachine().getInstrInfo();
   DebugLoc dl = MI->getDebugLoc();
-  */
 
   switch (MI->getOpcode()) {
   default: llvm_unreachable("Unexpected instr type to insert");
@@ -994,6 +991,11 @@ MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr *MI,
 	return ExpandUnsupportedOperation(MI, BB, dl, Subtarget, TII);
 	//return BB;
 */
+  case Mips::MOVZ_I_I:
+	return ExpandCondMov(MI, BB, dl, Subtarget, TII, false, Mips::BNE);
+
+  case Mips::MOVN_I_I:
+	return ExpandCondMov(MI, BB, dl, Subtarget, TII, false, Mips::BEQ);
 		   
   case Mips::ATOMIC_LOAD_ADD_I8:
   case Mips::ATOMIC_LOAD_ADD_I8_P8:
