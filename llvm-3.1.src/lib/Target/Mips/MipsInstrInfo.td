@@ -503,7 +503,7 @@ class CBranch<bits<6> op, string instr_asm, PatFrag cond_op, RegisterClass RC>:
              [(brcond (i32 (cond_op RC:$rs, RC:$rt)), bb:$imm16)], IIBranch> {
   let isBranch = 1;
   let isTerminator = 1;
-  let hasDelaySlot = 1;
+  let hasDelaySlot = 0;//1;
 }
 
 class CBranchZero<bits<6> op, bits<5> _rt, string instr_asm, PatFrag cond_op,
@@ -514,7 +514,7 @@ class CBranchZero<bits<6> op, bits<5> _rt, string instr_asm, PatFrag cond_op,
   let rt = _rt;
   let isBranch = 1;
   let isTerminator = 1;
-  let hasDelaySlot = 1;
+  let hasDelaySlot = 0;//1;
 }
 
 // SetCC
@@ -541,7 +541,7 @@ class JumpFJ<bits<6> op, string instr_asm>:
   let isBranch=1;
   let isTerminator=1;
   let isBarrier=1;
-  let hasDelaySlot = 1;
+  let hasDelaySlot = 0;//1;
   let Predicates = [RelocStatic];
   let DecoderMethod = "DecodeJumpTarget";
 }
@@ -555,11 +555,11 @@ class UncondBranch<bits<6> op, string instr_asm>:
   let isBranch = 1;
   let isTerminator = 1;
   let isBarrier = 1;
-  let hasDelaySlot = 1;
+  let hasDelaySlot = 0;//1;
   let Predicates = [RelocPIC];
 }
 
-let isBranch=1, isTerminator=1, isBarrier=1, rd=0, hasDelaySlot = 1,
+let isBranch=1, isTerminator=1, isBarrier=1, rd=0, hasDelaySlot = 0,//1,
     isIndirectBranch = 1 in
 class JumpFR<bits<6> op, bits<6> func, string instr_asm, RegisterClass RC>:
   FR<op, func, (outs), (ins RC:$rs),
@@ -570,7 +570,7 @@ class JumpFR<bits<6> op, bits<6> func, string instr_asm, RegisterClass RC>:
 }
 
 // Jump and Link (Call)
-let isCall=1, hasDelaySlot=1 in {
+let isCall=1, hasDelaySlot=0/*1*/ in {
   class JumpLink<bits<6> op, string instr_asm>:
     FJ<op, (outs), (ins calltarget:$target, variable_ops),
        !strconcat(instr_asm, "\t$target"), [(MipsJmpLink imm:$target)],
@@ -954,7 +954,7 @@ def JALR : JumpLinkReg<0x00, 0x09, "jalr", CPURegs>;
 // lack of BLTZAL
 //def BLTZAL  : BranchLink<"bltzal", 0x10, CPURegs>;
 
-let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
+let isReturn=1, isTerminator=1, hasDelaySlot=0/*1*/, isCodeGenOnly=1,
     isBarrier=1, hasCtrlDep=1, rd=0, rt=0, shamt=0 in
   def RET : FR <0x00, 0x08, (outs), (ins CPURegs:$target),
                 "jr\t$target", [(MipsRet CPURegs:$target)], IIBranch>;
