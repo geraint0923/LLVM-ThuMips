@@ -996,6 +996,11 @@ MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr *MI,
 
   case Mips::MOVN_I_I:
 	return ExpandCondMov(MI, BB, dl, Subtarget, TII, false, Mips::BEQ);
+
+  case Mips::LHu:
+  case Mips::LH:
+  case Mips::SH:
+	return ExpandUnsupportedOperation(MI, BB, MI->getOpcode());
 		   
   case Mips::ATOMIC_LOAD_ADD_I8:
   case Mips::ATOMIC_LOAD_ADD_I8_P8:
@@ -1101,6 +1106,89 @@ MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr *MI,
   case Mips::ATOMIC_CMP_SWAP_I64_P8:
     return EmitAtomicCmpSwap(MI, BB, 8);
   }
+}
+
+MachineBasicBlock *
+MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI, 
+											 MachineBasicBlock *BB,
+											 unsigned BinOpcode) const {
+		MachineFunction *MF = BB->getParent();
+		MachineRegisterInfo &RegInfo = MF->getRegInfo();
+		const TargetRegisterClass *RC = getRegClassFor(MVT::i32);
+		const TargetInstrInfo *TII = getTargetMachine().getInstrInfo();
+		DebugLoc dl = MI->getDebugLoc();
+
+		unsigned tmpReg0 = RegInfo.createVirtualRegister(RC);
+		unsigned tmpReg1 = RegInfo.createVirtualRegister(RC);
+		unsigned tmpReg2 = RegInfo.createVirtualRegister(RC);
+
+
+		const BasicBlock *LLVM_BB = BB->getBasicBlock();
+		MachineBasicBlock *expandMBB = MF->CreateMachineBasicBlock(LLVM_BB);
+		MachineBasicBlock *exitMBB = MF->CreateMachineBasicBlock(LLVM_BB);
+		MachineFunction::iterator It = BB;
+		++It;
+		MF->insert(It, expandMBB);
+		MF->insert(It, exitMBB);
+
+		exitMBB->splice(exitMBB->begin(), BB,
+						llvm::next(MachineBasicBlock::iterator(MI)), BB->end());
+		exitMBB->transferSuccessorsAndUpdatePHIs(BB);
+
+		BB->addSuccessor(expandMBB);
+		expandMBB->addSuccessor(exitMBB);
+
+		BB = expandMBB;
+
+		switch(BinOpcode) {
+			default:
+				cout<<"Unknow Unsupported Instruction!"<<endl;
+				exit(-1);
+				
+			case Mips::LH:
+			case Mips::LHu:
+				/*
+				   to expand LH(u) dst, imm(src), 
+				   we use:
+						lb tmpReg0, imm(src)
+						lb(u) tmpReg1, (imm+1)(src)
+						sll tmpReg2, tmpReg1, 8
+						or dst, tmpReg0, tmpReg2
+				 */
+				
+				BuildMI(BB, dl, TII->get(Mips::LB), tmpReg0).addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm());
+				BuildMI(BB, dl, TII->get(BinOpcode == Mips::LH ? Mips::LB : Mips::LBu), tmpReg1)
+						.addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm());
+				BuildMI(BB, dl, TII->get(Mips::SLL), tmpReg2).addReg(tmpReg1).addImm(8);
+				BuildMI(BB, dl, TII->get(Mips::OR), MI->getOperand(0).getReg())
+						.addReg(tmpReg0).addReg(tmpReg2);
+
+				break;
+
+			case Mips::SH:
+				/*
+				   to expand SH src, imm(dst)
+				   we use:
+						sb src, imm(dst)
+						srl tmpReg0, src, 8
+						sb tmpReg0, (imm+1)(dst)
+				*/
+				BuildMI(BB, dl, TII->get(Mips::SB)).addReg(MI->getOperand(0).getReg())
+						.addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm());
+				BuildMI(BB, dl, TII->get(Mips::SRL), tmpReg0).addReg(MI->getOperand(0).getReg())
+						.addImm(8);
+				BuildMI(BB, dl, TII->get(Mips::SB)).addReg(tmpReg0)
+						.addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm() + 1);
+				break;
+		}
+
+		MI->eraseFromParent();
+
+		return BB;
 }
 
 // This function also handles Mips::ATOMIC_SWAP_I32 (when BinOpcode == 0), and

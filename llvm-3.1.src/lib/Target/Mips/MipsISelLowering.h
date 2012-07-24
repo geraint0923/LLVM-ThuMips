@@ -197,9 +197,7 @@ namespace llvm {
 
 	MachineBasicBlock *ExpandUnsupportedOperation(MachineInstr *MI,
 								  MachineBasicBlock *BB,
-								  DebugLoc dl,
-								  const MipsSubtarget *Subtarget,
-								  const TargetInstrInfo *TII) const;
+								  unsigned BinOpcode) const;
 
   };
 }

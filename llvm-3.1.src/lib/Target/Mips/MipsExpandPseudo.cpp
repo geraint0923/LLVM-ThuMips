@@ -75,6 +75,7 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
         .addReg(Mips::V0).addReg(I->getOperand(1).getReg());
       break;
 
+/*
 	// trick for SH
 	case Mips::ULW:
 	  I0 = I++;
@@ -105,6 +106,7 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
 	  BuildMI(MBB, I, I->getDebugLoc(), TII->get(Mips::LBu)).addOperand(I->getOperand(0)).
 			  addOperand(I->getOperand(1)).addImm(I->getOperand(2).getImm()+1);
 	  break;
+*/
 
 	case Mips::SYNC:
 	  I->dump();

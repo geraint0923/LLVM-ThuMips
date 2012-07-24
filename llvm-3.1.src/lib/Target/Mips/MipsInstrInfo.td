@@ -503,7 +503,7 @@ class CBranch<bits<6> op, string instr_asm, PatFrag cond_op, RegisterClass RC>:
              [(brcond (i32 (cond_op RC:$rs, RC:$rt)), bb:$imm16)], IIBranch> {
   let isBranch = 1;
   let isTerminator = 1;
-  let hasDelaySlot = 0;//1;
+  let hasDelaySlot = 1;
 }
 
 class CBranchZero<bits<6> op, bits<5> _rt, string instr_asm, PatFrag cond_op,
@@ -541,7 +541,7 @@ class JumpFJ<bits<6> op, string instr_asm>:
   let isBranch=1;
   let isTerminator=1;
   let isBarrier=1;
-  let hasDelaySlot = 0;//1;
+  let hasDelaySlot = 1;
   let Predicates = [RelocStatic];
   let DecoderMethod = "DecodeJumpTarget";
 }
@@ -555,11 +555,11 @@ class UncondBranch<bits<6> op, string instr_asm>:
   let isBranch = 1;
   let isTerminator = 1;
   let isBarrier = 1;
-  let hasDelaySlot = 0;//1;
+  let hasDelaySlot = 1;
   let Predicates = [RelocPIC];
 }
 
-let isBranch=1, isTerminator=1, isBarrier=1, rd=0, hasDelaySlot = 0,//1,
+let isBranch=1, isTerminator=1, isBarrier=1, rd=0, hasDelaySlot = 1,
     isIndirectBranch = 1 in
 class JumpFR<bits<6> op, bits<6> func, string instr_asm, RegisterClass RC>:
   FR<op, func, (outs), (ins RC:$rs),
@@ -570,7 +570,7 @@ class JumpFR<bits<6> op, bits<6> func, string instr_asm, RegisterClass RC>:
 }
 
 // Jump and Link (Call)
-let isCall=1, hasDelaySlot=0/*1*/ in {
+let isCall=1, hasDelaySlot=1 in {
   class JumpLink<bits<6> op, string instr_asm>:
     FJ<op, (outs), (ins calltarget:$target, variable_ops),
        !strconcat(instr_asm, "\t$target"), [(MipsJmpLink imm:$target)],
@@ -836,15 +836,14 @@ let usesCustomInserter = 1 in {
   defm ATOMIC_CMP_SWAP_I8   : AtomicCmpSwap32<atomic_cmp_swap_8, "8">;
   defm ATOMIC_CMP_SWAP_I16  : AtomicCmpSwap32<atomic_cmp_swap_16, "16">;
   defm ATOMIC_CMP_SWAP_I32  : AtomicCmpSwap32<atomic_cmp_swap_32, "32">;
+  
+  defm LH      : LoadM32<0x21, "lh",  sextloadi16_a>;
+  defm LHu     : LoadM32<0x25, "lhu", zextloadi16_a>;
+  defm SH      : StoreM32<0x29, "sh", truncstorei16_a>;
+
 
 
 }
-
-/*
-defm LH      : LoadM32<0x21, "lh",  sextloadi16_a>;
-defm LHu     : LoadM32<0x25, "lhu", zextloadi16_a>;
-defm SH      : StoreM32<0x29, "sh", truncstorei16_a>;
-*/
 
 
 
@@ -954,7 +953,7 @@ def JALR : JumpLinkReg<0x00, 0x09, "jalr", CPURegs>;
 // lack of BLTZAL
 //def BLTZAL  : BranchLink<"bltzal", 0x10, CPURegs>;
 
-let isReturn=1, isTerminator=1, hasDelaySlot=0/*1*/, isCodeGenOnly=1,
+let isReturn=1, isTerminator=1, hasDelaySlot=1, isCodeGenOnly=1,
     isBarrier=1, hasCtrlDep=1, rd=0, rt=0, shamt=0 in
   def RET : FR <0x00, 0x08, (outs), (ins CPURegs:$target),
                 "jr\t$target", [(MipsRet CPURegs:$target)], IIBranch>;
@@ -1098,6 +1097,7 @@ def : Pat<(not CPURegs:$in),
 
 /* my code here */
 
+/*
 def : Pat<(i32 (sextloadi16_a addr:$src)),
 			(OR (LB addr:$src), (SLL (ULH addr:$src), 8))>;
 
@@ -1106,6 +1106,7 @@ def : Pat<(i32 (zextloadi16_a addr:$src)),
 
 def : Pat<(truncstorei16_a (i32 CPURegs:$src), addr:$dst),
 			(USW (SRLV CPURegs:$src, (ULW addr:$dst)), addr:$dst)>;
+*/
 
 //def : Pat<(truncstorei16_a (i32 CPURegs:$src), addr:$dst),
 //			(SB (), addr:$dst)>;
@@ -1117,9 +1118,9 @@ def : Pat<(truncstorei16_a (i32 CPURegs:$src), addr:$dst),
 let Predicates = [NotN64] in {
   def : Pat<(i32 (extloadi1  addr:$src)), (LBu addr:$src)>;
   def : Pat<(i32 (extloadi8  addr:$src)), (LBu addr:$src)>;
-//  def : Pat<(i32 (extloadi16_a addr:$src)), (LHu addr:$src)>;
-  def : Pat<(i32 (extloadi16_a addr:$src)), 
-			(OR (LB addr:$src), (SLL (ULHu addr:$src), 8))>;
+  def : Pat<(i32 (extloadi16_a addr:$src)), (LHu addr:$src)>;
+//  def : Pat<(i32 (extloadi16_a addr:$src)), 
+//			(OR (LB addr:$src), (SLL (ULHu addr:$src), 8))>;
 
   def : Pat<(i32 (extloadi16_u addr:$src)), (ULHu addr:$src)>;
 }
