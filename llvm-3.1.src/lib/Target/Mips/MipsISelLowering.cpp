@@ -1000,6 +1000,13 @@ MipsTargetLowering::EmitInstrWithCustomInserter(MachineInstr *MI,
   case Mips::LHu:
   case Mips::LH:
   case Mips::SH:
+
+  case Mips::ULH:
+  case Mips::ULHu:
+  case Mips::ULW:
+  case Mips::USH:
+  case Mips::USW:
+
 	return ExpandUnsupportedOperation(MI, BB, MI->getOpcode());
 		   
   case Mips::ATOMIC_LOAD_ADD_I8:
@@ -1121,6 +1128,10 @@ MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 		unsigned tmpReg0 = RegInfo.createVirtualRegister(RC);
 		unsigned tmpReg1 = RegInfo.createVirtualRegister(RC);
 		unsigned tmpReg2 = RegInfo.createVirtualRegister(RC);
+		unsigned tmpReg3 = RegInfo.createVirtualRegister(RC);
+		unsigned tmpReg4 = RegInfo.createVirtualRegister(RC);
+		unsigned tmpReg5 = RegInfo.createVirtualRegister(RC);
+		unsigned tmpReg6 = RegInfo.createVirtualRegister(RC);
 
 
 		const BasicBlock *LLVM_BB = BB->getBasicBlock();
@@ -1140,6 +1151,8 @@ MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 
 		BB = expandMBB;
 
+		MI->dump();
+
 		switch(BinOpcode) {
 			default:
 				cout<<"Unknow Unsupported Instruction!"<<endl;
@@ -1147,6 +1160,8 @@ MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 				
 			case Mips::LH:
 			case Mips::LHu:
+			case Mips::ULH:
+			case Mips::ULHu:
 				/*
 				   to expand LH(u) dst, imm(src), 
 				   we use:
@@ -1158,15 +1173,17 @@ MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 				
 				BuildMI(BB, dl, TII->get(Mips::LB), tmpReg0).addOperand(MI->getOperand(1))
 						.addImm(MI->getOperand(2).getImm());
-				BuildMI(BB, dl, TII->get(BinOpcode == Mips::LH ? Mips::LB : Mips::LBu), tmpReg1)
+				BuildMI(BB, dl, TII->get((BinOpcode == Mips::LH) || (BinOpcode == Mips::ULH)
+										? Mips::LB : Mips::LBu), tmpReg1)
 						.addOperand(MI->getOperand(1))
-						.addImm(MI->getOperand(2).getImm());
+						.addImm(MI->getOperand(2).getImm() + 1);
 				BuildMI(BB, dl, TII->get(Mips::SLL), tmpReg2).addReg(tmpReg1).addImm(8);
 				BuildMI(BB, dl, TII->get(Mips::OR), MI->getOperand(0).getReg())
 						.addReg(tmpReg0).addReg(tmpReg2);
 
 				break;
 
+			case Mips::USH:
 			case Mips::SH:
 				/*
 				   to expand SH src, imm(dst)
@@ -1184,6 +1201,48 @@ MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 						.addOperand(MI->getOperand(1))
 						.addImm(MI->getOperand(2).getImm() + 1);
 				break;
+
+
+			case Mips::ULW:
+				// directly expand without thinking
+				BuildMI(BB, dl, TII->get(Mips::LB), tmpReg0).addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm());
+				BuildMI(BB, dl, TII->get(Mips::LB), tmpReg1).addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm() + 1);
+				BuildMI(BB, dl, TII->get(Mips::LB), tmpReg2).addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm() + 2);
+				BuildMI(BB, dl, TII->get(Mips::LB), tmpReg3).addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm() + 3);
+				BuildMI(BB, dl, TII->get(Mips::SLL), tmpReg4).addReg(tmpReg1).addImm(8);
+				BuildMI(BB, dl, TII->get(Mips::SLL), tmpReg5).addReg(tmpReg2).addImm(16);
+				BuildMI(BB, dl, TII->get(Mips::SLL), tmpReg6).addReg(tmpReg3).addImm(24);
+				BuildMI(BB, dl, TII->get(Mips::OR), tmpReg1).addReg(tmpReg0).addReg(tmpReg4);
+				BuildMI(BB, dl, TII->get(Mips::OR), tmpReg2).addReg(tmpReg1).addReg(tmpReg5);
+				BuildMI(BB, dl, TII->get(Mips::OR), MI->getOperand(0).getReg())
+						.addReg(tmpReg2).addReg(tmpReg6);
+				break;
+
+			case Mips::USW:
+				// directly expand without thinking
+				BuildMI(BB, dl, TII->get(Mips::SB)).addReg(MI->getOperand(0).getReg())
+						.addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm());
+				BuildMI(BB, dl, TII->get(Mips::SRL), tmpReg0).addReg(MI->getOperand(0).getReg())
+						.addImm(8);
+				BuildMI(BB, dl, TII->get(Mips::SB)).addReg(tmpReg0)
+						.addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm() + 1);
+				BuildMI(BB, dl, TII->get(Mips::SRL), tmpReg1).addReg(tmpReg0).addImm(8);
+				BuildMI(BB, dl, TII->get(Mips::SB)).addReg(tmpReg1)
+						.addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm() + 2);
+				BuildMI(BB, dl, TII->get(Mips::SRL), tmpReg2).addReg(tmpReg1).addImm(8);
+				BuildMI(BB, dl, TII->get(Mips::SB)).addReg(tmpReg2)
+						.addOperand(MI->getOperand(1))
+						.addImm(MI->getOperand(2).getImm() + 3);
+				break;
+
+
 		}
 
 		MI->eraseFromParent();

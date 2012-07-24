@@ -163,6 +163,9 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
 	case Mips::SDIV:
 	case Mips::UDIV:
 
+	case Mips::ULW:
+	case Mips::USW:
+
 	/*
 	case Mips::MTHI:
 	case Mips::MTLO:

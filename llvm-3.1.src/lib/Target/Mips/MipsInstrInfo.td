@@ -841,6 +841,13 @@ let usesCustomInserter = 1 in {
   defm LHu     : LoadM32<0x25, "lhu", zextloadi16_a>;
   defm SH      : StoreM32<0x29, "sh", truncstorei16_a>;
 
+//unaligned
+defm ULH     : LoadM32<0x21, "ulh",  sextloadi16_u, 1>;
+defm ULHu    : LoadM32<0x25, "ulhu", zextloadi16_u, 1>;
+defm ULW     : LoadM32<0x23, "ulw",  load_u, 1>;
+defm USH     : StoreM32<0x29, "ush", truncstorei16_u, 1>;
+defm USW     : StoreM32<0x2b, "usw", store_u, 1>;
+
 
 
 }
@@ -898,13 +905,6 @@ defm LBu     : LoadM32<0x24, "lbu", zextloadi8>;
 defm LW      : LoadM32<0x23, "lw",  load_a>;
 defm SB      : StoreM32<0x28, "sb", truncstorei8>;
 defm SW      : StoreM32<0x2b, "sw", store_a>;
-
-///  unaligned
-defm ULH     : LoadM32<0x21, "ulh",  sextloadi16_u, 1>;
-defm ULHu    : LoadM32<0x25, "ulhu", zextloadi16_u, 1>;
-defm ULW     : LoadM32<0x23, "ulw",  load_u, 1>;
-defm USH     : StoreM32<0x29, "ush", truncstorei16_u, 1>;
-defm USW     : StoreM32<0x2b, "usw", store_u, 1>;
 
 /// Primitives for unaligned
 defm LWL     : LoadUnAlign32<0x22>;
