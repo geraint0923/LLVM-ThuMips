@@ -149,6 +149,7 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
 	case Mips::SC_P8:
 
 	case Mips::MOVZ_I_I:
+	case Mips::MOVN_I_I:
 
 	case Mips::ROTR:
 	case Mips::ROTRV:
