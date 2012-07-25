@@ -905,8 +905,11 @@ static MachineBasicBlock* ExpandCondMov(MachineInstr *MI, MachineBasicBlock *BB,
                                         bool isFPCmp, unsigned Opc) {
   // There is no need to expand CMov instructions if target has
   // conditional moves.
+  // expand it no matter -condmov is set
+  /*
   if (Subtarget->hasCondMov())
     return BB;
+  */
 
   // To "insert" a SELECT_CC instruction, we actually have to insert the
   // diamond control-flow pattern.  The incoming instruction knows the
