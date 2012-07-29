@@ -115,13 +115,13 @@ bool MipsExpandPseudo::runOnMachineBasicBlock(MachineBasicBlock& MBB) {
 
 	case Mips::ADD:
 	  I->dump();
-	  BuildMI(MBB, I, I->getDebugLoc(), TII->get(Mips::ADD)).addOperand(I->getOperand(0)).
+	  BuildMI(MBB, I, I->getDebugLoc(), TII->get(Mips::ADDu)).addOperand(I->getOperand(0)).
 			  addOperand(I->getOperand(1)).addOperand(I->getOperand(2));
 	  break;
 
 	case Mips::ADDi:
 	  I->dump();
-	  BuildMI(MBB, I, I->getDebugLoc(), TII->get(Mips::ADDi)).addOperand(I->getOperand(0)).
+	  BuildMI(MBB, I, I->getDebugLoc(), TII->get(Mips::ADDiu)).addOperand(I->getOperand(0)).
 			  addOperand(I->getOperand(1)).addOperand(I->getOperand(2));
 	  break;
 

@@ -1137,8 +1137,6 @@ MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 		unsigned tmpReg6 = RegInfo.createVirtualRegister(RC);
 
 
-		const BasicBlock *LLVM_BB = BB->getBasicBlock();
-		MachineBasicBlock *expandMBB = MF->CreateMachineBasicBlock(LLVM_BB);
 		MachineBasicBlock *exitMBB = MF->CreateMachineBasicBlock(LLVM_BB);
 		MachineFunction::iterator It = BB;
 		++It;
@@ -1250,7 +1248,7 @@ MipsTargetLowering::ExpandUnsupportedOperation(MachineInstr *MI,
 
 		MI->eraseFromParent();
 
-		return BB;
+		return exitMBB;
 }
 
 // This function also handles Mips::ATOMIC_SWAP_I32 (when BinOpcode == 0), and
